@@ -11,7 +11,7 @@ const schema = z.object({
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
   CORS_ORIGINS: z
     .string()
-    .default('http://localhost:4200,http://127.0.0.1:4200,https://vspark.learn2earntech.com'),
+    .default('http://localhost:4200,http://127.0.0.1:4200,https://vspark.learn2earntech.com,https://vpsark.learn2earntech.com'),
   TRUST_PROXY: z.coerce.number().int().min(0).default(1),
 
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 chars'),
@@ -56,13 +56,15 @@ if (!parsed.success) {
 }
 
 const e = parsed.data;
+/** Frontend hosts that must always be allowed, even if CORS_ORIGINS on the server omits them. */
+const FRONTEND_ORIGINS = ['https://vspark.learn2earntech.com', 'https://vpsark.learn2earntech.com'];
 const [minLat, minLng, maxLat, maxLng] = e.CAMPUS_BOUNDS.split(',').map((n) => Number(n.trim()));
 
 export const env = {
   ...e,
   isProd: e.NODE_ENV === 'production',
   isTest: e.NODE_ENV === 'test',
-  corsOrigins: e.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
+  corsOrigins: [...new Set([...e.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean), ...FRONTEND_ORIGINS])],
   emailDomains: e.ALLOWED_EMAIL_DOMAINS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
   campusBounds: { minLat, minLng, maxLat, maxLng },
 };

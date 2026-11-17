@@ -57,7 +57,7 @@ With `MONGODB_URI=memory` the server starts an in-memory replica set and seeds i
 | `NODE_ENV` | yes | `development` / `production` |
 | `PORT`, `HOST` | yes | `3000`, `0.0.0.0` locally; `127.0.0.1` in production |
 | `MONGODB_URI` | yes | Atlas SRV string (`mongodb+srv://…/campusfind`) or `memory` locally |
-| `CORS_ORIGINS` | yes | `http://localhost:4200,http://127.0.0.1:4200,https://vspark.learn2earntech.com` |
+| `CORS_ORIGINS` | yes | `http://localhost:4200,http://127.0.0.1:4200,https://vspark.learn2earntech.com,https://vpsark.learn2earntech.com` |
 | `TRUST_PROXY` | no | `1` behind Nginx |
 | `JWT_ACCESS_SECRET`, `REFRESH_TOKEN_PEPPER`, `FILE_LINK_SECRET` | yes | `openssl rand -hex 32` each |
 | `ACCESS_TTL`, `REFRESH_TTL_DAYS` | no | `15m`, `7` |

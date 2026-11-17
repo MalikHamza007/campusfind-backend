@@ -15,7 +15,7 @@ Node/Express/TypeScript API with MongoDB (Atlas), a private bucket on the VPS fo
 | `NODE_ENV` | `production` |
 | `PORT` / `HOST` | free localhost port / `127.0.0.1` |
 | `MONGODB_URI` ★ | Atlas SRV URI for database `campusfind`; VPS IP must be in Atlas access list |
-| `CORS_ORIGINS` | `https://vspark.learn2earntech.com,http://localhost:4200` |
+| `CORS_ORIGINS` | `https://vspark.learn2earntech.com,https://vpsark.learn2earntech.com,http://localhost:4200` (both frontend hosts are also always allowed by code) |
 | `JWT_ACCESS_SECRET`, `REFRESH_TOKEN_PEPPER`, `FILE_LINK_SECRET` | `openssl rand -hex 32` (three different values) |
 | `COOKIE_SECURE` | `true` |
 | `COOKIE_DOMAIN` | empty (host-only cookie on the API host) |

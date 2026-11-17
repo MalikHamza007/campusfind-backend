@@ -18,6 +18,11 @@ describe('health & CORS', () => {
     expect(res.headers['access-control-allow-credentials']).toBe('true');
     expect(res.headers['access-control-allow-methods']).toContain('PATCH');
   });
+  it('allows the vpsark frontend host too', async () => {
+    const res = await request(app).options('/api/auth/register').set('Origin', 'https://vpsark.learn2earntech.com').set('Access-Control-Request-Method', 'POST');
+    expect(res.status).toBe(204);
+    expect(res.headers['access-control-allow-origin']).toBe('https://vpsark.learn2earntech.com');
+  });
   it('allows localhost dev origin', async () => {
     const res = await request(app).get('/api/health').set('Origin', 'http://localhost:4200');
     expect(res.headers['access-control-allow-origin']).toBe('http://localhost:4200');
