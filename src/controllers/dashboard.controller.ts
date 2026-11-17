@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { Item, CATEGORIES } from '../models/Item';
 import { Claim } from '../models/Claim';
-import { User } from '../models/User';
+import { User, isStaffRole } from '../models/User';
 import { AuditLog } from '../models/AuditLog';
 import { FileObject } from '../models/FileObject';
 import { escapeRegex } from '../utils/pagination';
@@ -74,7 +74,7 @@ const ITEM_POP = 'fullName email studentId department';
 export async function stats(req: Request, res: Response) {
   const q = req.query as unknown as Q;
   const user = req.user!;
-  if (user.role === 'admin') return res.json(await adminStats(req, q));
+  if (isStaffRole(user.role)) return res.json(await adminStats(req, q));
   return res.json(await studentStats(req, q));
 }
 

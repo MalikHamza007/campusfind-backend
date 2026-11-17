@@ -114,4 +114,21 @@ describe('claim workflow', () => {
     expect((await request(app).delete(`/api/items/${found.id}`).set(auth(finder.token))).body.error.code).toBe('ACTIVE_CLAIM');
     expect((await request(app).patch(`/api/items/${found.id}`).set(auth(finder.token)).send({ title: 'New title here', version: 1 })).status).toBe(409);
   });
+  it('staff pick up claims; students see who is handling theirs', async () => {
+    const { owner, admin, found } = await scenario();
+    const c = (await request(app).post('/api/claims').set(auth(owner.token)).send({ foundItemId: found.id, ownershipEvidence: 'My initials A.R. are scratched on the back cover' })).body.claim;
+    const queue = await request(app).get('/api/claims?assigned=unassigned').set(auth(admin.token));
+    expect(queue.body.data.map((x: any) => x.id)).toContain(c.id);
+    expect((await request(app).post(`/api/claims/${c.id}/assign`).set(auth(owner.token)).send({ version: 0 })).status).toBe(403);
+    const other = await makeUser('admin');
+    expect((await request(app).post(`/api/claims/${c.id}/assign`).set(auth(admin.token)).send({ version: 0, staffId: other.id })).status).toBe(403);
+    const a = await request(app).post(`/api/claims/${c.id}/assign`).set(auth(admin.token)).send({ version: 0 });
+    expect(a.status).toBe(200);
+    expect(a.body.claim.assignedTo.id).toBe(admin.id);
+    const mine = await request(app).get('/api/claims?assigned=me').set(auth(admin.token));
+    expect(mine.body.total).toBe(1);
+    const seen = await request(app).get(`/api/claims/${c.id}`).set(auth(owner.token));
+    expect(seen.body.claim.assignedTo.fullName).toBeTruthy();
+    expect(seen.body.claim.assignedTo.email).toBeUndefined();
+  });
 });

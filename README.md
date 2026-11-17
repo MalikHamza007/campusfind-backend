@@ -9,6 +9,7 @@ Frontend repo: https://github.com/MalikHamza007/campusfind-frontend · Live app:
 ## Features (rubric map)
 | Area | What's implemented | Where |
 |---|---|---|
+| Roles | **Student** (reports, claims, follows own claims) · **Staff** `admin` (picks up and processes claims, manages items, deactivates students) · **Super admin** `super_admin` (everything staff can + roles, staff accounts, assigning claims to staff) | `src/models/User.ts`, `src/middlewares/auth.ts`, `src/controllers/user.controller.ts` |
 | Auth (15) | Register (students only, no `role` accepted), login, logout, session restore via rotating refresh cookie with reuse detection, bcrypt, rate-limited auth routes, deactivation kicks sessions | `src/controllers/auth.controller.ts`, `src/services/token.service.ts`, `src/middlewares/auth.ts` |
 | Database & CRUD (20) | Items, claims, files, users, audit logs in MongoDB; list/search/filter/paginate; create/update with optimistic `version`; soft delete with dependency protection; transactions for claim transitions | `src/controllers/*`, `src/services/claim.service.ts` |
 | Storage (10) | Private bucket (`StorageProvider` → local VPS dir or S3), magic-byte sniffing, per-purpose limits, atomic `.part` writes, orphan cleanup, tombstone delete, 60 s HMAC links, in-app preview | `src/services/storage/*`, `src/services/file.service.ts`, `docs/LIVE_STORAGE_CHECK.md` |
@@ -47,7 +48,7 @@ npm run dev                   # http://localhost:3000/api/health
 npm test                      # 56 tests (auth, RBAC/IDOR, CRUD, claims, storage, Nominatim, CORS)
 npm run build && npm start    # production build → dist/server.js
 npm run seed                  # wipe + load realistic data (needs ADMIN_* and SEED_STUDENT_PASSWORD)
-npm run seed:admin            # idempotent first-admin bootstrap only
+npm run seed:admin            # idempotent super-admin bootstrap (ADMIN_EMAIL) only
 ```
 With `MONGODB_URI=memory` the server starts an in-memory replica set and seeds itself on every start (data is not persisted).
 
@@ -68,14 +69,15 @@ With `MONGODB_URI=memory` the server starts an in-memory replica set and seeds i
 | `FILE_LINK_TTL_SECONDS` | no | `60` |
 | `S3_*` | only for `s3` | endpoint, region, bucket, keys |
 | `NOMINATIM_BASE_URL`, `NOMINATIM_USER_AGENT`, `NOMINATIM_TIMEOUT_MS`, `GEO_CACHE_TTL_HOURS` | no | defaults in `.env.example` |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `SEED_STUDENT_PASSWORD` | for seeding | owner supplies; remove after seeding |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `SEED_STUDENT_PASSWORD` | for seeding | owner supplies; remove after seeding. `ADMIN_EMAIL` becomes the **super admin** |
+| `SEED_STAFF_PASSWORD` | optional | password for the seeded staff accounts (defaults to `SEED_STUDENT_PASSWORD`) |
 | `SEED_ALLOW_RESET` | no | must be `true` to run the destructive seed in production |
 
 ## API summary
 See [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md). Key routes: `/auth/*`, `/items`, `/claims` (+ `/approve`, `/reject`, `/return`, `/withdraw`), `/files` (+ `/signed-url`, `/content`, `/link`), `/users`, `/map/search`, `/map/reverse`, `/dashboard/stats`, `/audit-logs`, `/health`.
 
 ## Seed data
-13 users (1 admin + 12 students across Computer Science, Business Administration, Engineering, English), 40 items (20 lost / 20 found, 1 Sep – 17 Nov 2026, every status), 14 claims (5 pending, 3 approved, 3 rejected, 2 returned, 1 withdrawn), 36 files (28 item photos, 6 evidence files incl. PDFs, 2 avatars), 55 audit entries. Accounts: `admin@campusfind.edu.pk`, `ali.raza@…`, `ayesha.khan@…`, `hamza.saeed@…`, `fatima.noor@…` (passwords come from your `.env`).
+15 users (1 super admin, 2 staff in the Lost & Found Office and Campus Security, 12 students across Computer Science, Business Administration, Engineering, English), 40 items (20 lost / 20 found, 1 Sep – 17 Nov 2026, every status), 14 claims (5 pending, some already picked up by staff, 3 approved, 3 rejected, 2 returned, 1 withdrawn), 36 files (28 item photos, 6 evidence files incl. PDFs, 2 avatars), 55 audit entries. Accounts: super admin `admin@campusfind.edu.pk`; staff `nadia.rehman@…`, `kamran.sheikh@…`; students `ali.raza@…`, `ayesha.khan@…`, `hamza.saeed@…`, `fatima.noor@…` (passwords come from your `.env`).
 
 ## Security notes
 Access token lives in memory on the client; refresh token is an HttpOnly cookie hashed (HMAC + pepper) in Mongo and rotated on every refresh. Role/ownership/status are server-controlled (Zod `.strict()` rejects extra fields). Concurrency: transactions + optimistic `version` + a partial unique index (`one_approved_per_item`). Audit log model blocks updates/deletes.

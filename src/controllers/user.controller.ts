@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { User, publicUser } from '../models/User';
+import { User, publicUser, isStaffRole } from '../models/User';
 import { Item } from '../models/Item';
 import { Claim } from '../models/Claim';
 import { AppError } from '../utils/AppError';
 import { escapeRegex, paginate } from '../utils/pagination';
-import { isAdmin } from '../middlewares/auth';
+import { isAdmin, isSuperAdmin } from '../middlewares/auth';
 import { audit } from '../services/audit.service';
 import { revokeAllForUser } from '../services/token.service';
 import { assertAttachable, contentPath } from '../services/file.service';
@@ -48,12 +48,16 @@ export async function update(req: Request, res: Response) {
   const { role, status, avatarFileId, ...profile } = req.body;
 
   if ((role !== undefined || status !== undefined) && !admin) throw AppError.forbidden('Role and status are managed by administrators');
-  const demoting = role === 'student' && target.role === 'admin';
+  // Staff (admin) may only activate/deactivate students; roles and staff accounts belong to the super admin.
+  if (role !== undefined && role !== target.role && !isSuperAdmin(req)) throw AppError.forbidden('Only a super admin can change roles');
+  if (status !== undefined && isStaffRole(target.role) && !self && !isSuperAdmin(req)) throw AppError.forbidden('Only a super admin can change staff accounts');
+  const leavingSuper = target.role === 'super_admin' && ((role !== undefined && role !== 'super_admin') || (status === 'inactive' && target.status === 'active'));
+  const demoting = role !== undefined && role !== target.role && isStaffRole(target.role) && (role === 'student' || target.role === 'super_admin');
   const deactivating = status === 'inactive' && target.status === 'active';
   if (self && (demoting || deactivating)) throw AppError.conflict('You cannot demote or deactivate your own account', 'SELF_LOCKOUT');
-  if ((demoting || deactivating) && target.role === 'admin') {
-    const activeAdmins = await User.countDocuments({ role: 'admin', status: 'active' });
-    if (activeAdmins <= 1) throw AppError.conflict('The system must keep at least one active admin', 'LAST_ADMIN');
+  if (leavingSuper) {
+    const activeSupers = await User.countDocuments({ role: 'super_admin', status: 'active' });
+    if (activeSupers <= 1) throw AppError.conflict('The system must keep at least one active super admin', 'LAST_SUPER_ADMIN');
   }
   if (avatarFileId) await assertAttachable([avatarFileId], 'avatar', String(target._id), req.user!);
 

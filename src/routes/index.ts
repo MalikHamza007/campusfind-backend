@@ -6,7 +6,7 @@ import { authLimiter, geoLimiter, uploadLimiter } from '../middlewares/rateLimit
 import { idParam } from '../validators/common';
 import { changePasswordSchema, loginSchema, registerSchema } from '../validators/auth.validators';
 import { createItemSchema, listItemsQuery, updateItemSchema } from '../validators/item.validators';
-import { createClaimSchema, listClaimsQuery, rejectSchema, reviewSchema, updateClaimSchema } from '../validators/claim.validators';
+import { assignSchema, createClaimSchema, listClaimsQuery, rejectSchema, reviewSchema, updateClaimSchema } from '../validators/claim.validators';
 import { listUsersQuery, updateUserSchema } from '../validators/user.validators';
 import { linkSchema, listFilesQuery } from '../validators/file.validators';
 import { auditQuery, dashboardQuery, geoReverseQuery, geoSearchQuery } from '../validators/misc.validators';
@@ -51,6 +51,7 @@ router.post('/claims', requireAuth, requireRole('student'), validate(createClaim
 router.get('/claims/:id', requireAuth, id, claims.getOne);
 router.patch('/claims/:id', requireAuth, id, validate(updateClaimSchema), claims.update);
 router.post('/claims/:id/withdraw', requireAuth, requireRole('student'), id, claims.withdraw);
+router.post('/claims/:id/assign', requireAuth, requireRole('admin'), id, validate(assignSchema), claims.assign);
 router.post('/claims/:id/approve', requireAuth, requireRole('admin'), id, validate(reviewSchema), claims.approve);
 router.post('/claims/:id/reject', requireAuth, requireRole('admin'), id, validate(rejectSchema), claims.reject);
 router.post('/claims/:id/return', requireAuth, requireRole('admin'), id, validate(reviewSchema), claims.markReturned);

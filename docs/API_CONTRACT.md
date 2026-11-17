@@ -22,13 +22,17 @@ The refresh token is an `HttpOnly; SameSite=Lax; Path=/api/auth` cookie named `c
 | 429 | `RATE_LIMITED` |
 
 ## Roles
-| Capability | student | admin |
-|---|:-:|:-:|
-| Lost/found reports | create; read all; edit/delete own (found: only while `open`) | full CRUD incl. deleted, close/reopen, restore |
-| Claims | create, read own, edit/withdraw own pending | read all, approve, reject, mark returned, delete pending/rejected |
-| Files | upload, view allowed, delete own unused | view/delete all, list everyone's |
-| Users | read/update own profile | list, promote/demote, activate/deactivate (never self, never last admin) |
-| Audit log | — | read |
+Three roles, enforced by `requireRole` (super_admin inherits every `admin` route) plus per-object checks.
+
+| Capability | student | admin (Lost & Found staff) | super_admin (system owner) |
+|---|:-:|:-:|:-:|
+| Lost/found reports | create; read all; edit/delete own (found: only while `open`) | full CRUD incl. deleted, close/reopen, restore | same as staff |
+| Claims | create, read own, edit/withdraw own pending; **sees who is handling it** | read all, **pick up** (assign to self), approve, reject, mark returned, delete pending/rejected | same + **assign a claim to any staff member** |
+| Files | upload, view allowed, delete own unused | view/delete all, list everyone's | same |
+| Users | read/update own profile | list users; activate/deactivate **students** | change any role, activate/deactivate staff (never self, never the last active super admin) |
+| Audit log | — | read | read |
+
+Public registration always creates a `student`. The first super admin comes from `npm run seed:admin` (`ADMIN_EMAIL`/`ADMIN_PASSWORD`).
 
 ## Entities (Mongo collections)
 `users`, `items`, `claims`, `files`, `refreshtokens`, `auditlogs`, `counters` (item codes), `geocaches` (Nominatim cache). Field lists: see `src/models/*.ts` (they follow the build spec §3 exactly, plus `items.code`, `items.geo` (2dsphere mirror), `claims.active` (backs the partial unique indexes) and `files.deletingAt` (delete tombstone)). Every record exposes `version` (Mongo `__v`) used for optimistic concurrency.
@@ -69,6 +73,7 @@ The refresh token is an `HttpOnly; SameSite=Lax; Path=/api/auth` cookie named `c
 | GET | `/claims/:id` | claimant/admin (404 for others) |
 | PATCH | `/claims/:id` | claimant: evidence while pending; admin: `adminNote`; requires `version` |
 | POST | `/claims/:id/withdraw` | claimant, pending only |
+| POST | `/claims/:id/assign` | staff `{version, staffId?}` → sets `assignedTo` on a pending claim (self; only super_admin may name another staff member). `GET /claims?assigned=me|unassigned` filters the queue |
 | POST | `/claims/:id/approve` | admin `{version,adminNote?}` → claim `approved`, items `matched`, competing pending claims auto-rejected (transaction) |
 | POST | `/claims/:id/reject` | admin `{version,adminNote}` |
 | POST | `/claims/:id/return` | admin `{version,adminNote?}` → claim + found + linked lost item `returned` |

@@ -1,3 +1,4 @@
+import { isStaffRole } from '../models/User';
 import { ClientSession, Types } from 'mongoose';
 import { Item } from '../models/Item';
 import { Claim } from '../models/Claim';
@@ -25,7 +26,7 @@ export function serializeItem(item: any, viewer: AuthUser, opts: { withImages?: 
   const reporter = item.reportedBy;
   const reporterId = String(reporter?._id ?? reporter);
   const isOwner = reporterId === viewer.id;
-  const privileged = isOwner || viewer.role === 'admin';
+  const privileged = isOwner || isStaffRole(viewer.role);
   const mask = (s?: string) => (item.category === 'id_card' && !privileged ? maskIdNumbers(s) : s);
   const imageIds: string[] = (item.imageFileIds ?? []).map((f: any) => String(f?._id ?? f));
   const which = opts.withImages ?? 'first';
@@ -49,7 +50,7 @@ export function serializeItem(item: any, viewer: AuthUser, opts: { withImages?: 
     imageCount: imageIds.length,
     images,
     reporter:
-      viewer.role === 'admin' && reporter?.email
+      isStaffRole(viewer.role) && reporter?.email
         ? { id: reporterId, fullName: reporter.fullName, email: reporter.email, studentId: reporter.studentId, department: reporter.department }
         : { id: isOwner ? reporterId : null, fullName: isOwner ? reporter?.fullName : shortName(reporter?.fullName), department: reporter?.department ?? null },
     isMine: isOwner,

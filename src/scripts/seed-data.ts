@@ -1,7 +1,13 @@
 /** Realistic seed data for CampusFind (fictional people and events). */
 export const DEPARTMENTS = ['Computer Science', 'Business Administration', 'Engineering', 'English'] as const;
 
-export const ADMIN = { fullName: 'Nadia Rehman', studentId: 'GSU-2015-ADM-001', department: 'Lost & Found Office', phone: '+92 42 3591 0100' };
+/** System owner — signs in with ADMIN_EMAIL / ADMIN_PASSWORD. */
+export const SUPER_ADMIN = { fullName: 'Imran Shah', studentId: 'GSU-2012-ITS-001', department: 'IT Services', phone: '+92 42 3591 0001' };
+/** Lost & found office staff (role admin) — sign in with SEED_STAFF_PASSWORD. */
+export const STAFF = [
+  { fullName: 'Nadia Rehman', email: 'nadia.rehman@campusfind.edu.pk', studentId: 'GSU-2015-ADM-001', department: 'Lost & Found Office', phone: '+92 42 3591 0100' },
+  { fullName: 'Kamran Sheikh', email: 'kamran.sheikh@campusfind.edu.pk', studentId: 'GSU-2017-SEC-004', department: 'Campus Security', phone: '+92 42 3591 0144' },
+];
 
 export const STUDENTS = [
   { fullName: 'Ali Raza', email: 'ali.raza@campusfind.edu.pk', studentId: 'GSU-2023-CS-041', department: 'Computer Science', phone: '+92 300 4512 781' },

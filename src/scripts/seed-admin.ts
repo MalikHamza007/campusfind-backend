@@ -1,6 +1,6 @@
 /**
- * Idempotent first-admin bootstrap from ADMIN_EMAIL / ADMIN_PASSWORD.
- * - creates the admin if missing; - if the account exists it is (re)activated and promoted, password untouched.
+ * Idempotent super-admin bootstrap from ADMIN_EMAIL / ADMIN_PASSWORD.
+ * - creates the super admin if missing; - if the account exists it is (re)activated and promoted to super_admin, password untouched.
  * Safe to run on every deploy. Never deletes data.
  */
 import bcrypt from 'bcryptjs';
@@ -17,24 +17,24 @@ async function main() {
   const email = env.ADMIN_EMAIL.toLowerCase();
   const existing = await User.findOne({ email });
   if (existing) {
-    if (existing.role !== 'admin' || existing.status !== 'active') {
-      existing.role = 'admin';
+    if (existing.role !== 'super_admin' || existing.status !== 'active') {
+      existing.role = 'super_admin';
       existing.status = 'active';
       await existing.save();
-      console.log('[seed:admin] existing account promoted/activated');
-    } else console.log('[seed:admin] admin already present — nothing to do');
+      console.log('[seed:admin] existing account promoted to super admin / activated');
+    } else console.log('[seed:admin] super admin already present — nothing to do');
   } else {
     const u = await User.create({
-      fullName: 'Lost & Found Office',
+      fullName: 'Imran Shah',
       email,
-      studentId: 'GSU-2015-ADM-001',
-      department: 'Lost & Found Office',
+      studentId: 'GSU-2012-ITS-001',
+      department: 'IT Services',
       passwordHash: await bcrypt.hash(env.ADMIN_PASSWORD, env.BCRYPT_ROUNDS),
-      role: 'admin',
+      role: 'super_admin',
       status: 'active',
     });
     await AuditLog.create({ actorId: u._id, action: 'user.admin_bootstrapped', entityType: 'user', entityId: u._id, metadata: { email } });
-    console.log('[seed:admin] admin created');
+    console.log('[seed:admin] super admin created');
   }
 }
 

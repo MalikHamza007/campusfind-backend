@@ -6,7 +6,7 @@ import { AppError } from '../utils/AppError';
 import { FileObject, FilePurpose } from '../models/FileObject';
 import { Item } from '../models/Item';
 import { Claim } from '../models/Claim';
-import { User } from '../models/User';
+import { User, isStaffRole } from '../models/User';
 import { storage } from './storage';
 import { AuthUser } from '../middlewares/auth';
 
@@ -132,7 +132,7 @@ export function contentPath(fileId: string, userId: string) {
 
 // ---------- access policy ----------
 export async function canReadFile(file: any, user: { id: string; role: string }): Promise<boolean> {
-  if (user.role === 'admin') return true;
+  if (isStaffRole(user.role)) return true;
   if (String(file.uploadedBy?._id ?? file.uploadedBy) === user.id) return true;
   if (file.purpose === 'item_image') {
     // Item images are visible to any signed-in user once attached to a live report.
@@ -183,7 +183,7 @@ export async function assertAttachable(
   if (files.length !== unique.length) throw AppError.validation('One or more files do not exist');
   for (const f of files) {
     if (f.purpose !== purpose) throw AppError.validation(`File ${f.originalName} was uploaded for a different purpose`);
-    if (actor.role !== 'admin' && String(f.uploadedBy) !== ownerId) throw AppError.forbidden('You can only attach files you uploaded');
+    if (!isStaffRole(actor.role) && String(f.uploadedBy) !== ownerId) throw AppError.forbidden('You can only attach files you uploaded');
   }
   if (purpose === 'item_image') {
     const used = await Item.exists({ imageFileIds: { $in: unique }, ...(opts.exceptItemId ? { _id: { $ne: opts.exceptItemId } } : {}) }).session(opts.session ?? null);

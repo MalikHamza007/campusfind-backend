@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { AppError } from '../utils/AppError';
-import { User, Role } from '../models/User';
+import { User, Role, isStaffRole } from '../models/User';
 
 export interface AuthUser { id: string; role: Role; fullName: string; email: string }
 declare global {
@@ -26,12 +26,16 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   next();
 }
 
+/** Role hierarchy: super_admin can do everything admin can. */
 export function requireRole(...roles: Role[]) {
+  const allowed = new Set<Role>(roles.includes('admin') ? [...roles, 'super_admin'] : roles);
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) return next(AppError.unauthorized());
-    if (!roles.includes(req.user.role)) return next(AppError.forbidden());
+    if (!allowed.has(req.user.role)) return next(AppError.forbidden());
     next();
   };
 }
 
-export const isAdmin = (req: Request) => req.user?.role === 'admin';
+/** True for lost & found staff (admin) and super admins. */
+export const isAdmin = (req: Request) => isStaffRole(req.user?.role);
+export const isSuperAdmin = (req: Request) => req.user?.role === 'super_admin';

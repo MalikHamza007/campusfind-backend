@@ -1,7 +1,7 @@
 /**
- * Loads realistic CampusFind data: 13 users, 40 items, 14 claims, 36 files, 55 audit entries.
+ * Loads realistic CampusFind data: 15 users (1 super admin, 2 staff, 12 students), 40 items, 14 claims, 36 files, 55 audit entries.
  * Wipes existing CampusFind collections first (refused in production unless SEED_ALLOW_RESET=true).
- * Requires ADMIN_EMAIL, ADMIN_PASSWORD and SEED_STUDENT_PASSWORD in the environment.
+ * Requires ADMIN_EMAIL, ADMIN_PASSWORD and SEED_STUDENT_PASSWORD; SEED_STAFF_PASSWORD (falls back to the student one).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,7 +18,7 @@ import { FileObject } from '../models/FileObject';
 import { AuditLog } from '../models/AuditLog';
 import { RefreshToken } from '../models/RefreshToken';
 import { Counter } from '../models/Counter';
-import { ADMIN, CLAIMS, FOUND, LOCATIONS, LOST, STUDENTS, SeedItem } from './seed-data';
+import { SUPER_ADMIN, STAFF, CLAIMS, FOUND, LOCATIONS, LOST, STUDENTS, SeedItem } from './seed-data';
 
 const ASSETS = path.resolve(__dirname, '../../seed-assets');
 const HOUR = 3600_000;
@@ -55,12 +55,19 @@ export async function runSeed({ connect = true } = {}) {
   await AuditLog.collection.deleteMany({}); // raw driver call; the model itself is append-only
 
   // ---- users ----
-  const [adminHash, studentHash] = await Promise.all([bcrypt.hash(env.ADMIN_PASSWORD, env.BCRYPT_ROUNDS), bcrypt.hash(env.SEED_STUDENT_PASSWORD, env.BCRYPT_ROUNDS)]);
-  const adminId = new Types.ObjectId();
+  const [adminHash, studentHash, staffHash] = await Promise.all([
+    bcrypt.hash(env.ADMIN_PASSWORD, env.BCRYPT_ROUNDS),
+    bcrypt.hash(env.SEED_STUDENT_PASSWORD, env.BCRYPT_ROUNDS),
+    bcrypt.hash(env.SEED_STAFF_PASSWORD || env.SEED_STUDENT_PASSWORD, env.BCRYPT_ROUNDS),
+  ]);
+  const superId = new Types.ObjectId();
+  const staffIds = STAFF.map(() => new Types.ObjectId());
+  const reviewer = (i: number) => staffIds[i % staffIds.length];
   const studentIds = STUDENTS.map(() => new Types.ObjectId());
   const t0 = new Date('2026-08-25T09:00:00Z').getTime();
   await insertRaw(User, [
-    { _id: adminId, ...ADMIN, email: env.ADMIN_EMAIL.toLowerCase(), passwordHash: adminHash, role: 'admin', status: 'active', createdAt: new Date(t0 - 30 * DAY) },
+    { _id: superId, ...SUPER_ADMIN, email: env.ADMIN_EMAIL.toLowerCase(), passwordHash: adminHash, role: 'super_admin', status: 'active', createdAt: new Date(t0 - 45 * DAY) },
+    ...STAFF.map((s, i) => ({ _id: staffIds[i], ...s, passwordHash: staffHash, role: 'admin', status: 'active', createdAt: new Date(t0 - (30 - i * 5) * DAY) })),
     ...STUDENTS.map((s, i) => ({ _id: studentIds[i], ...s, passwordHash: studentHash, role: 'student', status: i === 10 ? 'active' : 'active', createdAt: new Date(t0 + i * DAY) })),
   ]);
 
@@ -130,7 +137,9 @@ export async function runSeed({ connect = true } = {}) {
   const codeOf = (key: string) => (itemDocs.find((d) => d._id === itemIds[key]) as any).code;
 
   let evidenceIdx = 0;
+  let claimNo = 0;
   for (const c of CLAIMS) {
+    const staff = reviewer(claimNo++);
     const id = new Types.ObjectId();
     const createdAt = clamp(itemCreated[c.found] + c.daysAfter * DAY);
     const claimant = studentIds[c.claimant];
@@ -148,7 +157,10 @@ export async function runSeed({ connect = true } = {}) {
       status: c.status,
       active: ['pending', 'approved'].includes(c.status),
       adminNote: c.adminNote,
-      reviewedBy: reviewedAt ? adminId : undefined,
+      // Every reviewed claim had a handler; about half of the pending queue is already picked up.
+      assignedTo: reviewedAt || (c.status === 'pending' && claimNo % 2 === 0) ? staff : undefined,
+      assignedAt: reviewedAt || (c.status === 'pending' && claimNo % 2 === 0) ? new Date(clamp(createdAt + 3 * HOUR)) : undefined,
+      reviewedBy: reviewedAt ? staff : undefined,
       reviewedAt: reviewedAt ? new Date(reviewedAt) : undefined,
       returnedAt: returnedAt ? new Date(returnedAt) : undefined,
       withdrawnAt: c.status === 'withdrawn' ? new Date(clamp(createdAt + 6 * HOUR)) : undefined,
@@ -156,10 +168,10 @@ export async function runSeed({ connect = true } = {}) {
       updatedAt: new Date(returnedAt ?? reviewedAt ?? createdAt),
     });
     log(claimant, 'claim.created', 'claim', id, createdAt, { foundItemId: String(itemIds[c.found]), code: codeOf(c.found) });
-    if (reviewedAt && c.status !== 'rejected') log(adminId, 'claim.approved', 'claim', id, reviewedAt, { code: codeOf(c.found) });
-    if (c.status === 'rejected') log(adminId, 'claim.rejected', 'claim', id, reviewedAt!, { reason: c.adminNote });
+    if (reviewedAt && c.status !== 'rejected') log(staff, 'claim.approved', 'claim', id, reviewedAt, { code: codeOf(c.found) });
+    if (c.status === 'rejected') log(staff, 'claim.rejected', 'claim', id, reviewedAt!, { reason: c.adminNote });
     if (returnedAt) {
-      log(adminId, 'claim.returned', 'claim', id, returnedAt, { code: codeOf(c.found) });
+      log(staff, 'claim.returned', 'claim', id, returnedAt, { code: codeOf(c.found) });
       for (const key of [c.found, c.lost].filter(Boolean) as string[]) {
         const d = itemDocs.find((x) => x._id === itemIds[key])!;
         d.returnedAt = new Date(returnedAt);

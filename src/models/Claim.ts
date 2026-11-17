@@ -14,6 +14,9 @@ const claimSchema = new Schema(
     /** true while pending/approved — backs the partial unique indexes below. */
     active: { type: Boolean, default: true },
     adminNote: { type: String, trim: true },
+    /** Staff member handling the claim (picked up from the queue or set on review). */
+    assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
+    assignedAt: { type: Date },
     reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     reviewedAt: { type: Date },
     returnedAt: { type: Date },
@@ -27,5 +30,6 @@ claimSchema.index({ foundItemId: 1, claimantId: 1 }, { unique: true, partialFilt
 claimSchema.index({ foundItemId: 1 }, { unique: true, partialFilterExpression: { status: 'approved' }, name: 'one_approved_per_item' });
 claimSchema.index({ status: 1, createdAt: -1 });
 claimSchema.index({ claimantId: 1, status: 1 });
+claimSchema.index({ assignedTo: 1, status: 1 });
 
 export const Claim = model('Claim', claimSchema);

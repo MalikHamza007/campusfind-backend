@@ -25,7 +25,7 @@ export async function clearDb() {
 }
 
 let n = 0;
-export async function makeUser(role: 'student' | 'admin' = 'student', extra: Record<string, unknown> = {}) {
+export async function makeUser(role: 'student' | 'admin' | 'super_admin' = 'student', extra: Record<string, unknown> = {}) {
   n++;
   const email = `user${n}.${role}@campusfind.edu.pk`;
   const user = await User.create({

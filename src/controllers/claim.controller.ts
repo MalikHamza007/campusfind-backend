@@ -17,7 +17,8 @@ function populated(q: any) {
     .populate('foundItemId', ITEM_FIELDS)
     .populate('lostItemId', ITEM_FIELDS)
     .populate('claimantId', PERSON_FIELDS)
-    .populate('reviewedBy', 'fullName')
+    .populate('reviewedBy', 'fullName department')
+    .populate('assignedTo', 'fullName department')
     .populate('evidenceFileIds', 'originalName mimeType size');
 }
 
@@ -32,6 +33,8 @@ export async function list(req: Request, res: Response) {
   if (!isAdmin(req)) filter.claimantId = req.user!.id;
   if (q.status) filter.status = q.status;
   if (q.foundItemId) filter.foundItemId = q.foundItemId;
+  if (q.assigned === 'me' && isAdmin(req)) filter.$and = [{ $or: [{ assignedTo: req.user!.id }, { reviewedBy: req.user!.id }] }];
+  if (q.assigned === 'unassigned' && isAdmin(req)) { filter.assignedTo = null; filter.status = 'pending'; }
   if (q.q && isAdmin(req)) {
     const rx = { $regex: escapeRegex(q.q), $options: 'i' };
     const [items, users] = await Promise.all([
@@ -91,6 +94,11 @@ export async function withdraw(req: Request, res: Response) {
   const c = await Claim.findById(req.params.id).lean();
   if (!c || String(c.claimantId) !== req.user!.id) throw AppError.notFound('Claim');
   await svc.withdrawClaim(req, String(req.params.id));
+  res.json({ claim: await loadSerialized(req, String(req.params.id)) });
+}
+
+export async function assign(req: Request, res: Response) {
+  await svc.assignClaim(req, String(req.params.id), req.body.version, req.body.staffId);
   res.json({ claim: await loadSerialized(req, String(req.params.id)) });
 }
 

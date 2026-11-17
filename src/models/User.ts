@@ -1,7 +1,10 @@
 import { Schema, model, Types, InferSchemaType, HydratedDocument } from 'mongoose';
 
-export const ROLES = ['student', 'admin'] as const;
+export const ROLES = ['student', 'admin', 'super_admin'] as const;
 export type Role = (typeof ROLES)[number];
+/** Staff = lost & found office (admin) and the system owner (super_admin). */
+export const STAFF_ROLES: readonly Role[] = ['admin', 'super_admin'];
+export const isStaffRole = (r?: string | null) => r === 'admin' || r === 'super_admin';
 
 const userSchema = new Schema(
   {

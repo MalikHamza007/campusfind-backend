@@ -21,11 +21,14 @@ export const updateClaimSchema = z
   .strict();
 
 export const reviewSchema = z.object({ adminNote: optionalText(1000, 'Admin note'), version: z.coerce.number().int().min(0) }).strict();
+export const assignSchema = z.object({ staffId: objectId.optional(), version: z.coerce.number().int().min(0) }).strict();
 export const rejectSchema = z.object({ adminNote: cleanText(5, 1000, 'Rejection reason'), version: z.coerce.number().int().min(0) }).strict();
 
 export const listClaimsQuery = z.object({
   status: z.enum(CLAIM_STATUSES).optional(),
   foundItemId: objectId.optional(),
+  /** staff queue filter: claims I handle, or nobody has picked up yet */
+  assigned: z.enum(['me', 'unassigned']).optional(),
   q: z.string().trim().max(100).optional(),
   ...pageQuery,
 });

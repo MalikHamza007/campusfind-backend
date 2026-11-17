@@ -84,7 +84,7 @@ SEED_ALLOW_RESET=<true ONLY for the first showcase seed, then remove>
 ```
 Then seed once (compiled scripts, no dev dependencies needed):
 - Showcase data for judging (wipes CampusFind collections — empty DB only): `cd /srv/campusfind/app && sudo -u campusfind node --env-file=/srv/campusfind/.env dist/scripts/seed.js`
-- Or only the first admin (idempotent, safe on every deploy): `sudo -u campusfind node --env-file=/srv/campusfind/.env dist/scripts/seed-admin.js`
+- Or only the first super admin (idempotent, safe on every deploy; promotes an existing `ADMIN_EMAIL` account to super_admin): `sudo -u campusfind node --env-file=/srv/campusfind/.env dist/scripts/seed-admin.js`
 
 Afterwards delete `ADMIN_PASSWORD`, `SEED_STUDENT_PASSWORD` and `SEED_ALLOW_RESET` from the env file.
 

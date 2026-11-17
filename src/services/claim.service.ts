@@ -1,3 +1,4 @@
+import { User, isStaffRole } from '../models/User';
 import { ClientSession, Types } from 'mongoose';
 import { Request } from 'express';
 import { Claim } from '../models/Claim';
@@ -59,9 +60,25 @@ export async function createClaim(req: Request, user: AuthUser, body: { foundIte
   });
 }
 
+/** Staff picks up a pending claim (or a super admin hands it to a staff member). */
+export async function assignClaim(req: Request, id: string, version: number, staffId?: string) {
+  const target = staffId ?? req.user!.id;
+  if (target !== req.user!.id && req.user!.role !== 'super_admin') throw AppError.forbidden('Only a super admin can assign claims to someone else');
+  const staff = await User.findOne({ _id: target, status: 'active' }).select('role fullName').lean();
+  if (!staff || !isStaffRole(staff.role)) throw AppError.validation('Claims can only be assigned to active staff');
+  return withTransaction(async (session) => {
+    const claim = await transition(id, 'pending', version, { assignedTo: target, assignedAt: new Date() }, session);
+    await audit(req, 'claim.assigned', 'claim', claim._id, { assignedTo: target, staff: staff.fullName }, session);
+    return claim;
+  });
+}
+
+/** Whoever reviews an unassigned claim becomes its handler. */
+const handler = (req: Request) => ({ reviewedBy: req.user!.id, reviewedAt: new Date() });
+
 export async function approveClaim(req: Request, id: string, version: number, adminNote?: string) {
   return withTransaction(async (session) => {
-    const claim = await transition(id, 'pending', version, { status: 'approved', adminNote, reviewedBy: req.user!.id, reviewedAt: new Date() }, session);
+    const claim = await transition(id, 'pending', version, { status: 'approved', adminNote, ...handler(req) }, session);
     const found = await Item.findOneAndUpdate(
       { _id: claim.foundItemId, status: { $in: ['open', 'claim_pending'] }, deletedAt: null },
       { $set: { status: 'matched' }, $inc: { __v: 1 } },
@@ -86,7 +103,7 @@ export async function approveClaim(req: Request, id: string, version: number, ad
 
 export async function rejectClaim(req: Request, id: string, version: number, adminNote: string) {
   return withTransaction(async (session) => {
-    const claim = await transition(id, 'pending', version, { status: 'rejected', active: false, adminNote, reviewedBy: req.user!.id, reviewedAt: new Date() }, session);
+    const claim = await transition(id, 'pending', version, { status: 'rejected', active: false, adminNote, ...handler(req) }, session);
     await settleFoundItem(claim.foundItemId, session);
     await audit(req, 'claim.rejected', 'claim', claim._id, { reason: adminNote }, session);
     return claim;
@@ -135,9 +152,9 @@ export async function deleteClaim(req: Request, id: string) {
 export function serializeClaim(c: any, viewer: AuthUser) {
   const item = (x: any) =>
     x && x._id
-      ? { id: String(x._id), code: x.code, title: x.title, category: x.category, status: x.status, locationName: x.locationName, eventDate: x.eventDate, reportType: x.reportType, description: viewer.role === 'admin' ? x.description : undefined, imageFileIds: (x.imageFileIds ?? []).map(String) }
+      ? { id: String(x._id), code: x.code, title: x.title, category: x.category, status: x.status, locationName: x.locationName, eventDate: x.eventDate, reportType: x.reportType, description: isStaffRole(viewer.role) ? x.description : undefined, imageFileIds: (x.imageFileIds ?? []).map(String) }
       : x ? { id: String(x) } : null;
-  const person = (p: any) => (p && p._id ? { id: String(p._id), fullName: p.fullName, ...(viewer.role === 'admin' ? { email: p.email, studentId: p.studentId, department: p.department } : {}) } : p ? { id: String(p) } : null);
+  const person = (p: any) => (p && p._id ? { id: String(p._id), fullName: p.fullName, ...(isStaffRole(viewer.role) ? { email: p.email, studentId: p.studentId, department: p.department } : {}) } : p ? { id: String(p) } : null);
   return {
     id: String(c._id),
     foundItem: item(c.foundItemId),
@@ -151,6 +168,9 @@ export function serializeClaim(c: any, viewer: AuthUser) {
     status: c.status,
     adminNote: c.adminNote ?? null,
     reviewedBy: person(c.reviewedBy),
+    // Students see who is handling their claim (name + office only).
+    assignedTo: c.assignedTo && c.assignedTo._id ? { id: String(c.assignedTo._id), fullName: c.assignedTo.fullName, department: c.assignedTo.department } : c.reviewedBy && c.reviewedBy._id ? { id: String(c.reviewedBy._id), fullName: c.reviewedBy.fullName, department: c.reviewedBy.department } : null,
+    assignedAt: c.assignedAt ?? null,
     reviewedAt: c.reviewedAt ?? null,
     returnedAt: c.returnedAt ?? null,
     withdrawnAt: c.withdrawnAt ?? null,

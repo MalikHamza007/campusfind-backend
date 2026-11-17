@@ -17,3 +17,5 @@ Built from the scenario plus `CampusFind_Build_Spec.md`. Where something was uns
 13. **PrimeNG 21 + Angular 21:** PrimeNG 22 shows an "Invalid PrimeUI License" banner without a paid key, so the newest MIT-licensed pairing was used.
 14. **PDF preview** uses pdf.js (lazy-loaded) so it renders inside the app in every browser, not only those with a PDF plugin.
 15. Out of scope per spec: email/OTP verification, notifications, chat, AI matching, payments, native apps.
+16. **Three roles, derived from how a campus lost & found actually runs** (the spec named only student/admin): `student`; `admin` shown as **Staff** (Lost & Found Office / Campus Security, who pick up and process claims); `super_admin` (system owner who manages staff, roles and claim assignment). Kept the `admin` value so existing production accounts keep working; `seed:admin` promotes `ADMIN_EMAIL` to super admin.
+17. **Claim handling is visible:** staff pick up a pending claim (`assignedTo`), and the student sees the handler's name and office on their claim. Contact details stay private.

@@ -44,6 +44,7 @@ const schema = z.object({
   ADMIN_EMAIL: z.string().optional().default(''),
   ADMIN_PASSWORD: z.string().optional().default(''),
   SEED_STUDENT_PASSWORD: z.string().optional().default(''),
+  SEED_STAFF_PASSWORD: z.string().optional().default(''),
   SEED_ALLOW_RESET: bool.default(false),
 });
 

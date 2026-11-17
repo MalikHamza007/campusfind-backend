@@ -22,7 +22,7 @@ Node/Express/TypeScript API with MongoDB (Atlas), a private bucket on the VPS fo
 | `TRUST_PROXY` | `1` |
 | `STORAGE_DRIVER` / `STORAGE_ROOT` | `local` / `/var/lib/campusfind/storage` |
 | `FILE_LINK_TTL_SECONDS` | `60` |
-| `ADMIN_EMAIL` ★, `ADMIN_PASSWORD` ★ | first admin (password: 8–72 chars, upper, lower, number, symbol); remove the password after seeding |
+| `ADMIN_EMAIL` ★, `ADMIN_PASSWORD` ★ | first **super admin** (password: 8–72 chars, upper, lower, number, symbol); remove the password after seeding |
 | `SEED_STUDENT_PASSWORD` ★ | only if loading showcase data; remove after |
 | `SEED_ALLOW_RESET` | `true` only for the one-time showcase seed on an empty DB, then remove |
 | Others | defaults from `.env.example` are fine |
@@ -33,7 +33,7 @@ Create `/var/lib/campusfind/storage` owned by the app user, `chmod 700`, **not**
 ## Health & seed
 - `GET /api/health` → `{"status":"ok","db":"up",...}` (503 if Mongo is down).
 - Showcase data: `node --env-file=/srv/campusfind/.env dist/scripts/seed.js` (destructive; refuses in production unless `SEED_ALLOW_RESET=true`).
-- First admin only: `node --env-file=/srv/campusfind/.env dist/scripts/seed-admin.js` (idempotent).
+- First super admin only: `node --env-file=/srv/campusfind/.env dist/scripts/seed-admin.js` (idempotent; **also promotes an existing `ADMIN_EMAIL` account from admin to super_admin — run it once after deploying the three-role update**).
 
 ## Production hints
 New PM2 app `campusfind-api` (do not touch other apps), new Nginx vhost for `api.vspark.learn2earntech.com` → `127.0.0.1:<PORT>`, certbot for that host only, `nginx -t` before reload. Do **not** add CORS headers in Nginx — the app sends them (exact origin + `Access-Control-Allow-Credentials: true`). Cookies are `HttpOnly; Secure; SameSite=Lax; Path=/api/auth`.
