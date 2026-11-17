@@ -1,0 +1,127 @@
+{
+  "items": {
+    "F1": [
+      "item-f1-1.png",
+      "item-f1-2.webp"
+    ],
+    "F2": [
+      "item-f2-1.jpg"
+    ],
+    "F3": [
+      "item-f3-1.png",
+      "item-f3-2.webp"
+    ],
+    "F4": [
+      "item-f4-1.jpg"
+    ],
+    "F5": [
+      "item-f5-1.png"
+    ],
+    "F6": [
+      "item-f6-1.webp"
+    ],
+    "F7": [
+      "item-f7-1.jpg",
+      "item-f7-2.png"
+    ],
+    "F8": [
+      "item-f8-1.webp"
+    ],
+    "F9": [
+      "item-f9-1.jpg"
+    ],
+    "F10": [
+      "item-f10-1.png"
+    ],
+    "F11": [
+      "item-f11-1.webp"
+    ],
+    "F12": [
+      "item-f12-1.jpg"
+    ],
+    "F13": [
+      "item-f13-1.png"
+    ],
+    "F14": [
+      "item-f14-1.webp"
+    ],
+    "F15": [
+      "item-f15-1.jpg"
+    ],
+    "F16": [
+      "item-f16-1.png"
+    ],
+    "F17": [
+      "item-f17-1.webp"
+    ],
+    "F18": [],
+    "F19": [],
+    "F20": [],
+    "L1": [],
+    "L2": [
+      "item-l2-1.jpg"
+    ],
+    "L3": [
+      "item-l3-1.png"
+    ],
+    "L4": [],
+    "L5": [
+      "item-l5-1.webp"
+    ],
+    "L6": [
+      "item-l6-1.jpg"
+    ],
+    "L7": [
+      "item-l7-1.png"
+    ],
+    "L8": [
+      "item-l8-1.webp"
+    ],
+    "L9": [
+      "item-l9-1.jpg"
+    ],
+    "L10": [],
+    "L11": [],
+    "L12": [],
+    "L13": [],
+    "L14": [
+      "item-l14-1.png"
+    ],
+    "L15": [],
+    "L16": [],
+    "L17": [],
+    "L18": [],
+    "L19": [],
+    "L20": []
+  },
+  "evidence": [
+    {
+      "claim": "F1:0",
+      "file": "evidence-1-receipt.pdf"
+    },
+    {
+      "claim": "F3:5",
+      "file": "evidence-2-photo.jpg"
+    },
+    {
+      "claim": "F5:10",
+      "file": "evidence-3-receipt.pdf"
+    },
+    {
+      "claim": "F7:4",
+      "file": "evidence-4-photo.jpg"
+    },
+    {
+      "claim": "F8:3",
+      "file": "evidence-5-receipt.pdf"
+    },
+    {
+      "claim": "F11:8",
+      "file": "evidence-6-photo.jpg"
+    }
+  ],
+  "avatars": [
+    "avatar-1.png",
+    "avatar-2.png"
+  ]
+}
